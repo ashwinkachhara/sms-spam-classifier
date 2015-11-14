@@ -5,7 +5,16 @@ from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.cross_validation import KFold
 from sklearn.metrics import confusion_matrix, f1_score
 from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.base import TransformerMixin
+from pandas import DataFrame
 
+class UpperCaseTransformer(TransformerMixin):
+
+    def transform(self, X, **transform_params):
+        return DataFrame([sum(1 for c in string if c.isupper())*1.0/len(string) for string in X])
+
+    def fit(self, X, y=None, **fit_params):
+        return self
 
 
 with open('SMSSpamCollection') as file:
@@ -14,9 +23,6 @@ with open('SMSSpamCollection') as file:
 
 data = np.array([dat[1] for dat in dataset])
 labels = np.array([dat[0] for dat in dataset])
-
-#print labels[:5]
-#print data[:5]
 
 pipeline = Pipeline ([
 #    ('vectorizer', CountVectorizer(ngram_range=(1,2))),
@@ -27,6 +33,7 @@ pipeline = Pipeline ([
           ('counts', CountVectorizer()),
 #          ('tf_idf', TfidfTransformer())
           ])),
+#        ('percentage_uppercase', UpperCaseTransformer())
         #('essay_length', LengthTransformer()),
         #('misspellings', MispellingCountTransformer())
     ])),
@@ -56,17 +63,3 @@ print('Total emails classified:', len(data))
 print('Score:', sum(scores)/len(scores))
 print('Confusion matrix:')
 print(confusion)
-
-#pipeline.fit(data[:3000],labels[:3000])
-
-#predictions = pipeline.predict(data[3000:])
-
-#score = 0
-
-#for i in range(3000,len(data)):
-#    if predictions[i-3000] == labels[i]:
-#        score = score + 1
-        #print score
-
-#print score*1.0/len(data[3000:])
-
