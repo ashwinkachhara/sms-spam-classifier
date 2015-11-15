@@ -27,6 +27,32 @@ class EllipsesTransformer(TransformerMixin):
 
     def fit(self, X, y=None, **fit_params):
         return self
+      
+#Function for performing an analysis based on the different       
+def performAnalysis(pipeline):
+    #use K Folds for cross-validation to perform analysis on unseen data
+    k_fold = KFold(n=len(data), n_folds=10)
+    scores = []
+    confusion = np.array([[0, 0], [0, 0]])
+    for train_indices, test_indices in k_fold:
+        train_text = data[train_indices]
+        train_y = labels[train_indices]
+
+        test_text = data[test_indices]
+        test_y = labels[test_indices]
+
+        pipeline.fit(train_text, train_y)
+        predictions = pipeline.predict(test_text)
+        
+        confusion += confusion_matrix(test_y, predictions)
+        score = f1_score(test_y, predictions, pos_label='spam')
+        scores.append(score)
+
+    #print out reporting data
+    print('Total emails classified:', len(data))
+    print('Score:', sum(scores)/len(scores))
+    print('Confusion matrix:')
+    print(confusion)
 
 #Read all the data from the file
 with open('SMSSpamCollection') as file:
@@ -37,15 +63,15 @@ data   = np.array([dat[1] for dat in dataset])
 labels = np.array([dat[0] for dat in dataset])
 
 
-#Connect a series of steps
-pipeline = Pipeline ([
+#Create all of the pipelines that will connect a series of steps to execute
+testPipeline = Pipeline ([
 #    ('vectorizer', CountVectorizer(ngram_range=(1,2))),
 #    ('tfidf_transformer', TfidfTransformer()),
 #    ('extract_essays', EssayExractor()),
     ('features', FeatureUnion([
         ('ngram_tf_idf', Pipeline([
           ('counts', CountVectorizer()),
-#          ('tf_idf', TfidfTransformer())
+#         ('tf_idf', TfidfTransformer())
           ])),
 #        ('percentage_uppercase', UpperCaseTransformer()),
          ( 'ellipses', EllipsesTransformer())
@@ -55,26 +81,15 @@ pipeline = Pipeline ([
     ('classifier', MultinomialNB())
 ])
 
-#use K Folds for cross-validation to perform analysis on unseen data
-k_fold = KFold(n=len(data), n_folds=10)
-scores = []
-confusion = np.array([[0, 0], [0, 0]])
-for train_indices, test_indices in k_fold:
-    train_text = data[train_indices]
-    train_y = labels[train_indices]
+#Simple NB pipeline example to give us a baseline for comparison
+basicNBPipeline = Pipeline ([
+    ('features', FeatureUnion([
+        ('ngram_tf_idf', Pipeline([
+          ('counts', CountVectorizer()),
+          ])),
+    ])),
+    ('classifier', MultinomialNB())
+])
 
-    test_text = data[test_indices]
-    test_y = labels[test_indices]
-
-    pipeline.fit(train_text, train_y)
-    predictions = pipeline.predict(test_text)
-
-    confusion += confusion_matrix(test_y, predictions)
-    score = f1_score(test_y, predictions, pos_label='spam')
-    scores.append(score)
-
-#print out reporting data
-print('Total emails classified:', len(data))
-print('Score:', sum(scores)/len(scores))
-print('Confusion matrix:')
-print(confusion)
+#Execute the test cases
+performAnalysis(basicNBPipeline)
