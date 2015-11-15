@@ -8,6 +8,9 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.base import TransformerMixin
 from pandas import DataFrame
 
+#Create custom transformer classes to use in analysis
+
+#UpperCaseTransformer used to find % of text in message that is uppercase
 class UpperCaseTransformer(TransformerMixin):
 
     def transform(self, X, **transform_params):
@@ -15,15 +18,26 @@ class UpperCaseTransformer(TransformerMixin):
 
     def fit(self, X, y=None, **fit_params):
         return self
+        
+#EllipsesTransformer used to determine if text contains instance of "..."
+class EllipsesTransformer(TransformerMixin):
 
+    def transform(self, X, **transform_params):
+        return DataFrame([ 1 if string.find("...") != -1 else 0 for string in X])
 
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+#Read all the data from the file
 with open('SMSSpamCollection') as file:
     dataset = [[x.split('\t')[0],x.split('\t')[1]] for x in [line.strip() for line in file]]
 
-
-data = np.array([dat[1] for dat in dataset])
+#Extract out the data and labels (ham,spam) from the dataset file
+data   = np.array([dat[1] for dat in dataset])
 labels = np.array([dat[0] for dat in dataset])
 
+
+#Connect a series of steps
 pipeline = Pipeline ([
 #    ('vectorizer', CountVectorizer(ngram_range=(1,2))),
 #    ('tfidf_transformer', TfidfTransformer()),
@@ -33,19 +47,19 @@ pipeline = Pipeline ([
           ('counts', CountVectorizer()),
 #          ('tf_idf', TfidfTransformer())
           ])),
-#        ('percentage_uppercase', UpperCaseTransformer())
+#        ('percentage_uppercase', UpperCaseTransformer()),
+         ( 'ellipses', EllipsesTransformer())
         #('essay_length', LengthTransformer()),
         #('misspellings', MispellingCountTransformer())
     ])),
     ('classifier', MultinomialNB())
 ])
 
+#use K Folds for cross-validation to perform analysis on unseen data
 k_fold = KFold(n=len(data), n_folds=10)
 scores = []
 confusion = np.array([[0, 0], [0, 0]])
 for train_indices, test_indices in k_fold:
-    #print train_indices
-    #print test_indices
     train_text = data[train_indices]
     train_y = labels[train_indices]
 
@@ -59,6 +73,7 @@ for train_indices, test_indices in k_fold:
     score = f1_score(test_y, predictions, pos_label='spam')
     scores.append(score)
 
+#print out reporting data
 print('Total emails classified:', len(data))
 print('Score:', sum(scores)/len(scores))
 print('Confusion matrix:')
