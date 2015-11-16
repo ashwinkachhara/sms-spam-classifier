@@ -7,6 +7,7 @@ from sklearn.metrics import confusion_matrix, f1_score
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.base import TransformerMixin
 from pandas import DataFrame
+import matplotlib.pyplot as plt
 
 #Create custom transformer classes to use in analysis
 
@@ -71,10 +72,10 @@ testPipeline = Pipeline ([
     ('features', FeatureUnion([
         ('ngram_tf_idf', Pipeline([
           ('counts', CountVectorizer()),
-#         ('tf_idf', TfidfTransformer())
+#            ('tf_idf', TfidfTransformer())
           ])),
-#        ('percentage_uppercase', UpperCaseTransformer()),
-         ( 'ellipses', EllipsesTransformer())
+        ('percentage_uppercase', UpperCaseTransformer()),
+#        ('ellipses', EllipsesTransformer())
         #('essay_length', LengthTransformer()),
         #('misspellings', MispellingCountTransformer())
     ])),
@@ -92,4 +93,39 @@ basicNBPipeline = Pipeline ([
 ])
 
 #Execute the test cases
-performAnalysis(basicNBPipeline)
+performAnalysis(testPipeline)
+
+u = UpperCaseTransformer()
+e = EllipsesTransformer()
+ellipsescounts = e.transform(data)
+ellipsespam = 0
+ellipseham = 0
+print ellipsescounts.iat[3,0]
+for ellipse in range(len(ellipsescounts)):
+    if ellipsescounts.iat[ellipse,0] == 1:
+        if labels[ellipse] == 'ham':
+            ellipseham = ellipseham+1
+        else:
+            ellipsespam = ellipsespam + 1
+            
+uppercasecounts = u.transform(data)
+#print uppercasecounts[:10]
+labelsBinary = []
+for label in labels:
+    if label == 'ham':
+        labelsBinary.append(1)
+    else:
+        labelsBinary.append(0)
+
+plt.subplot(2,1,1)
+plt.scatter(labelsBinary, 100*uppercasecounts)
+plt.xlabel('Labels 1:ham, 0:spam')
+plt.ylabel('% capitalization')
+
+plt.subplot(2,1,2)
+plt.scatter([0, 1], [ellipsespam, ellipseham])
+plt.xlabel('Labels 1:ham, 0:spam')
+plt.ylabel('# of ellipses')
+plt.show()
+
+
