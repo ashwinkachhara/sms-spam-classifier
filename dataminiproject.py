@@ -28,6 +28,14 @@ class EllipsesTransformer(TransformerMixin):
 
     def fit(self, X, y=None, **fit_params):
         return self
+        
+class ComTransformer(TransformerMixin):
+
+    def transform(self, X, **transform_params):
+        return DataFrame([ 1 if string.find(".com") != -1 else 0 for string in X])
+
+    def fit(self, X, y=None, **fit_params):
+        return self
       
 #Function for performing an analysis based on the different       
 def performAnalysis(pipeline):
